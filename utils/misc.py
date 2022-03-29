@@ -1,5 +1,6 @@
 import argparse
 import os
+import time
 import psutil
 
 import pytz
@@ -54,22 +55,26 @@ def possible_timezones(tz_offset, common_only=True):
 
     return results
 
-def proceed_to_party():
+async def proceed_to_party():
     current_pid = os.getpid()
-    # Loop through all processes
+    launcher_pids = {}
     for proc in psutil.process_iter():
-        # print(f"aloha pids and names {proc.pid} {proc.name()}")
         try:
-            # Check if process name contains the given name string.
             if "python" in proc.name():
-                print(f"aloha found it {proc.pid} {proc.children()}")
-                # this returns the list of opened files by the current process
                 flist = proc.open_files()
                 if flist:
-                    print(f"alohaz {proc.pid} {proc.name}")
                     for nt in flist:
                         if "launcher" in nt.path.lower() and proc.pid != current_pid:
-                            proc.terminate()
+                            # proc.kill()
+                            launcher_pids[proc.pid] = proc.create_time()
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
-    return True
+    if not current_pid in launcher_pids:
+        launcher_pids[current_pid] = time.time()
+    print(f"All launcher tasks {launcher_pids}")
+    most_recent_pid = max(launcher_pids, key=launcher_pids.get)
+    print(f"most_recent_pid: {most_recent_pid}")
+    if most_recent_pid == current_pid:
+        return True
+    else:
+        return False

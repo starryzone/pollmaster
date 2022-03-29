@@ -198,8 +198,10 @@ class Cluster:
             pass
 
 
+
+
 if __name__ == "__main__":
     print("in main")
-    if proceed_to_party():
-        loop = asyncio.get_event_loop()
-        Launcher(loop).start()
+    loop = asyncio.get_event_loop()
+    launcher = Launcher(loop)
+    launcher.start()

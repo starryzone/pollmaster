@@ -10,7 +10,7 @@ essentials/secrets\.py
 *.log
 
 # export
-export/
+export/*.txt
 
 # compiled
 *.pyc

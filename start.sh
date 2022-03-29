@@ -1,4 +1,4 @@
 #!/bin/bash
 python ipc.py &
-python launcher.py &
-echo 'Donezo'
+python launcher.py
+exit 0

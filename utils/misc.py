@@ -1,4 +1,6 @@
 import argparse
+import os
+import psutil
 
 import pytz
 import datetime as dt
@@ -51,3 +53,23 @@ def possible_timezones(tz_offset, common_only=True):
             results.append(tz_name)
 
     return results
+
+def proceed_to_party():
+    current_pid = os.getpid()
+    # Loop through all processes
+    for proc in psutil.process_iter():
+        # print(f"aloha pids and names {proc.pid} {proc.name()}")
+        try:
+            # Check if process name contains the given name string.
+            if "python" in proc.name():
+                print(f"aloha found it {proc.pid} {proc.children()}")
+                # this returns the list of opened files by the current process
+                flist = proc.open_files()
+                if flist:
+                    print(f"alohaz {proc.pid} {proc.name}")
+                    for nt in flist:
+                        if "launcher" in nt.path.lower() and proc.pid != current_pid:
+                            proc.terminate()
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    return True

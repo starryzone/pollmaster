@@ -11,6 +11,7 @@ import requests
 from bot import ClusterBot
 from essentials.multi_server import get_pre
 from essentials.settings import SETTINGS
+from utils.misc import proceed_to_party
 
 TOKEN = SETTINGS.bot_token
 
@@ -130,7 +131,7 @@ class Launcher:
         if self.cluster_queue:
             cluster = self.cluster_queue.pop(0)
             log.info(f"Starting Cluster#{cluster.name}")
-            await cluster.start()
+            await cluster.start(force=True)
             log.info("Done!")
             self.clusters.append(cluster)
             await self.start_cluster()
@@ -198,5 +199,7 @@ class Cluster:
 
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    Launcher(loop).start()
+    print("in main")
+    if proceed_to_party():
+        loop = asyncio.get_event_loop()
+        Launcher(loop).start()

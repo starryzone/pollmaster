@@ -1,0 +1,22 @@
+{
+  "name": "pollmaster-health-check",
+  "version": "1.0.0",
+  "description": "Just returns 200 for Render",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/starryzone/pollmaster.git"
+  },
+  "author": "Mike Purvis",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/starryzone/pollmaster/issues"
+  },
+  "homepage": "https://github.com/starryzone/pollmaster#readme",
+  "dependencies": {
+    "express": "^4.17.3"
+  }
+}

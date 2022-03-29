@@ -45,6 +45,7 @@ class Launcher:
         self.init = time.perf_counter()
 
     def get_shard_count(self):
+        print(f"Settings.mode is {SETTINGS.mode}")
         if SETTINGS.mode == "development":
             return 1
         data = requests.get('https://discordapp.com/api/v7/gateway/bot', headers={
@@ -81,8 +82,11 @@ class Launcher:
 
     async def startup(self):
         shards = list(range(self.get_shard_count()))
-        size = [shards[x:x + 4] for x in range(0, len(shards), 4)]
+        print(f"Shards: {shards}")
+        # size = [shards[x:x + 4] for x in range(0, len(shards), 4)]
+        size = [shards[x:x + 1] for x in range(0, len(shards), 1)]
         log.info(f"Preparing {len(size)} clusters")
+        print(f"Preparing {len(size)} clusters")
         for shard_ids in size:
             self.cluster_queue.append(Cluster(self, next(NAMES), shard_ids, len(shards)))
 

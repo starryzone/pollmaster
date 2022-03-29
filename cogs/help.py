@@ -47,7 +47,7 @@ class Help(commands.Cog):
         title = f' Pollmaster Help - React with an emoji to learn more about a topic!'
         embed = discord.Embed(title='', description='', colour=SETTINGS.color)
         embed.set_author(name=title, icon_url=SETTINGS.author_icon)
-        embed.set_footer(text='Use reactions to navigate the help. This message will self-destruct in 5 minutes.')
+        embed.set_footer(text='Use reactions to navigate the help. This message will self-destruct in 5 minutes…')
 
         if page == '🏠':
             # POLL CREATION SHORT

@@ -4,9 +4,6 @@
 # PY VENV
 venv/
 
-# Tokens and Passwwords
-essentials/secrets\.py
-
 *.log
 
 # export

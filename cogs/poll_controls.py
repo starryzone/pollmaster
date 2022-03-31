@@ -4,6 +4,8 @@ import logging
 import random
 import shlex
 import time
+import os
+import requests
 from string import ascii_lowercase
 
 import discord
@@ -149,8 +151,6 @@ class PollControls(commands.Cog):
     # General Methods
     @staticmethod
     def get_label(message: discord.Message):
-        if not proceed_to_party():
-            return
         label = None
         if message and message.embeds:
             embed = message.embeds[0]
@@ -864,10 +864,14 @@ class PollControls(commands.Cog):
             return
 
         p = await Poll.load_from_db(self.bot, server.id, label)
+        tri = await get_token_rule_info(user_id, data.guild_id)
         if not isinstance(p, Poll):
             return
-        # member = server.get_member(user_id)
         user = member = data.member
+        print(f"Original roles: {member.roles}")
+        updated_member_with_roles = [r for r in member.roles if (r.name not in tri.keys()) or (r.name in tri.keys() and tri[r.name]["shouldGrant"] is True)]
+        print(f"New roles: {updated_member_with_roles}")
+
         # export
         if emoji.name == '📎':
             self.ignore_next_removed_reaction[str(message.id) + str(emoji)] = user_id
@@ -1014,12 +1018,11 @@ class PollControls(commands.Cog):
         else:
             # Assume: User wants to vote with reaction
             # no rights, terminate function
-            if not p.has_required_role(member):
+            if not p.has_required_role_list(updated_member_with_roles):
                 await message.remove_reaction(emoji, user)
                 await member.send(f'You are not allowed to vote in this poll. Only users with '
                                   f'at least one of these roles can vote:\n{", ".join(p.roles)}')
                 return
-
             # check if we need to remove reactions (this will trigger on_reaction_remove)
             if not isinstance(channel, discord.DMChannel) and (p.anonymous or p.hide_count):
                 # immediately remove reaction and to be safe, remove all reactions
@@ -1039,6 +1042,12 @@ class PollControls(commands.Cog):
             # update database with vote
             await p.vote(member, emoji.name, message)
 
+
+async def get_token_rule_info(user_id, guild_id):
+    data = requests.post(os.environ.get('PM_STARRY_BACKEND') + "/token-rule-info", data={'discordUserId': user_id, 'guildId': guild_id})
+    data.raise_for_status()
+    content = data.json()
+    return content
 
 def setup(bot):
     global logger

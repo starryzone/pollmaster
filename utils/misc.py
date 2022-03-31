@@ -55,7 +55,8 @@ def possible_timezones(tz_offset, common_only=True):
 
     return results
 
-async def proceed_to_party():
+
+def proceed_to_party():
     current_pid = os.getpid()
     launcher_pids = {}
     for proc in psutil.process_iter():
@@ -71,9 +72,7 @@ async def proceed_to_party():
             pass
     if not current_pid in launcher_pids:
         launcher_pids[current_pid] = time.time()
-    print(f"All launcher tasks {launcher_pids}")
     most_recent_pid = max(launcher_pids, key=launcher_pids.get)
-    print(f"most_recent_pid: {most_recent_pid}")
     if most_recent_pid == current_pid:
         return True
     else:

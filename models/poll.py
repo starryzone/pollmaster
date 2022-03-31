@@ -43,7 +43,6 @@ class Poll:
 
         self.bot = bot
         self.cursor_pos = 0
-
         self.vote_counts = {}
         self.vote_counts_weighted = {}
         self.full_votes = []
@@ -1570,6 +1569,12 @@ class Poll:
     def has_required_role(self, user):
         try:
             return not set([r.name for r in user.roles]).isdisjoint(self.roles)
+        except AttributeError:
+            return False
+
+    def has_required_role_list(self, role_list):
+        try:
+            return not set([r.name for r in role_list]).isdisjoint(self.roles)
         except AttributeError:
             return False
 

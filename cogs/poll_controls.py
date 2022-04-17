@@ -807,7 +807,7 @@ class PollControls(commands.Cog):
         if not proceed_to_party():
             return
 
-        # dont look at bot's own reactions
+        # don't look at bot's own reactions
         user_id = data.user_id
         if user_id == self.bot.user.id:
             return
@@ -864,13 +864,10 @@ class PollControls(commands.Cog):
             return
 
         p = await Poll.load_from_db(self.bot, server.id, label)
-        tri = await get_token_rule_info(user_id, data.guild_id)
+
         if not isinstance(p, Poll):
             return
         user = member = data.member
-        print(f"Original roles: {member.roles}")
-        updated_member_with_roles = [r for r in member.roles if (r.name not in tri.keys()) or (r.name in tri.keys() and tri[r.name]["shouldGrant"] is True)]
-        print(f"New roles: {updated_member_with_roles}")
 
         # export
         if emoji.name == '📎':
@@ -1017,8 +1014,24 @@ class PollControls(commands.Cog):
             return
         else:
             # Assume: User wants to vote with reaction
+            tri = await get_token_rule_info(user_id, data.guild_id)
+            print(f"Token rule info result", tri)
+            if "success" in tri:
+                print("Success")
+                print(f"Role(s) added", tri["success"]["added"])
+                print(f"Role(s) removed", tri["success"]["removed"])
+            else:
+                await message.remove_reaction(emoji, data.member)
+                await data.member.send("You'll need to use the '/starry join' command and follow directions before you can vote.")
+                return
+
+            print(f"Original roles: {data.member.roles}")
+            # This refreshes the user/member with their roles that were updated after /get-token-rule-info call
+            user = member = await data.member.guild.fetch_member(user_id)
+            print(f"New roles: {member.roles}")
+
             # no rights, terminate function
-            if not p.has_required_role_list(updated_member_with_roles):
+            if not p.has_required_role(member):
                 await message.remove_reaction(emoji, user)
                 await member.send(f'You are not allowed to vote in this poll. Only users with '
                                   f'at least one of these roles can vote:\n{", ".join(p.roles)}')
@@ -1044,8 +1057,19 @@ class PollControls(commands.Cog):
 
 
 async def get_token_rule_info(user_id, guild_id):
-    data = requests.post(os.environ.get('PM_STARRY_BACKEND') + "/token-rule-info", data={'discordUserId': user_id, 'guildId': guild_id})
-    data.raise_for_status()
+    try:
+        data = requests.post(os.environ.get('PM_STARRY_BACKEND') + "/token-rule-info",
+                         data={'discordUserId': user_id, 'guildId': guild_id})
+        data.raise_for_status()
+    except requests.exceptions.HTTPError as errh:
+        print("Http Error:", errh)
+    except requests.exceptions.ConnectionError as errc:
+        print("Error Connecting:", errc)
+    except requests.exceptions.Timeout as errt:
+        print("Timeout Error:", errt)
+    except requests.exceptions.RequestException as err:
+        print("Other error", err)
+
     content = data.json()
     return content
 

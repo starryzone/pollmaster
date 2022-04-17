@@ -1572,12 +1572,6 @@ class Poll:
         except AttributeError:
             return False
 
-    def has_required_role_list(self, role_list):
-        try:
-            return not set([r.name for r in role_list]).isdisjoint(self.roles)
-        except AttributeError:
-            return False
-
     async def refresh(self, message, await_=False, force=False):
         # dont refresh if there was a refresh in the past 5 seconds
         if not force and self.bot.refresh_blocked.get(str(self.id), 0)-time.time() > 0:

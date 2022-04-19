@@ -1020,9 +1020,9 @@ class PollControls(commands.Cog):
                 print("Success")
                 print(f"Role(s) added", tri["success"]["added"])
                 print(f"Role(s) removed", tri["success"]["removed"])
-            else:
+            elif "error" in tri:
                 await message.remove_reaction(emoji, data.member)
-                await data.member.send("You'll need to use the '/starry join' command and follow directions before you can vote.")
+                await data.member.send(tri["error"])
                 return
 
             print(f"Original roles: {data.member.roles}")

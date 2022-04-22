@@ -1,4 +1,7 @@
 import argparse
+import os
+import time
+import psutil
 
 import pytz
 import datetime as dt
@@ -51,3 +54,26 @@ def possible_timezones(tz_offset, common_only=True):
             results.append(tz_name)
 
     return results
+
+
+def proceed_to_party():
+    current_pid = os.getpid()
+    launcher_pids = {}
+    for proc in psutil.process_iter():
+        try:
+            if "python" in proc.name():
+                flist = proc.open_files()
+                if flist:
+                    for nt in flist:
+                        if "launcher" in nt.path.lower() and proc.pid != current_pid:
+                            # proc.kill()
+                            launcher_pids[proc.pid] = proc.create_time()
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    if not current_pid in launcher_pids:
+        launcher_pids[current_pid] = time.time()
+    most_recent_pid = max(launcher_pids, key=launcher_pids.get)
+    if most_recent_pid == current_pid:
+        return True
+    else:
+        return False

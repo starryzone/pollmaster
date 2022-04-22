@@ -43,7 +43,6 @@ class Poll:
 
         self.bot = bot
         self.cursor_pos = 0
-
         self.vote_counts = {}
         self.vote_counts_weighted = {}
         self.full_votes = []

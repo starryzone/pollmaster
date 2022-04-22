@@ -4,6 +4,8 @@ import logging
 import random
 import shlex
 import time
+import os
+import requests
 from string import ascii_lowercase
 
 import discord
@@ -15,7 +17,7 @@ from essentials.exceptions import StopWizard
 from essentials.multi_server import get_server_pre, ask_for_server, ask_for_channel
 from essentials.settings import SETTINGS
 from models.poll import Poll
-from utils.misc import CustomFormatter
+from utils.misc import CustomFormatter, proceed_to_party
 from utils.paginator import embed_list_paginated
 from utils.poll_name_generator import generate_word
 
@@ -40,6 +42,8 @@ class PollControls(commands.Cog):
     # noinspection PyCallingNonCallable
     @tasks.loop(seconds=30)
     async def close_activate_polls(self):
+        if not proceed_to_party():
+            return
         if hasattr(self.bot, 'db') and hasattr(self.bot.db, 'polls'):
             utc_now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
@@ -111,11 +115,15 @@ class PollControls(commands.Cog):
 
     @close_activate_polls.before_loop
     async def before_close_activate_polls(self):
+        if not proceed_to_party():
+            return
         # print('close task waiting...')
         await self.bot.wait_until_ready()
 
     @tasks.loop(seconds=5)
     async def refresh_queue(self):
+        if not proceed_to_party():
+            return
         remove_list = []
         for pid, t in self.bot.refresh_blocked.items():
             if t - time.time() < 0:
@@ -135,6 +143,8 @@ class PollControls(commands.Cog):
 
     @refresh_queue.before_loop
     async def before_refresh_queue(self):
+        if not proceed_to_party():
+            return
         # print('refresh task waiting...')
         await self.bot.wait_until_ready()
 
@@ -193,6 +203,8 @@ class PollControls(commands.Cog):
 
     @commands.command()
     async def activate(self, ctx, *, short=None):
+        if not proceed_to_party():
+            return
         """Activate a prepared poll. Parameter: <label>"""
         server = await ask_for_server(self.bot, ctx.message, short)
         if not server:
@@ -230,6 +242,8 @@ class PollControls(commands.Cog):
 
     @commands.command()
     async def delete(self, ctx, *, short=None):
+        if not proceed_to_party():
+            return
         """Delete a poll. Parameter: <label>"""
         server = await ask_for_server(self.bot, ctx.message, short)
         if not server:
@@ -269,6 +283,8 @@ class PollControls(commands.Cog):
 
     @commands.command()
     async def close(self, ctx, *, short=None):
+        if not proceed_to_party():
+            return
         """Close a poll. Parameter: <label>"""
         server = await ask_for_server(self.bot, ctx.message, short)
         if not server:
@@ -303,6 +319,8 @@ class PollControls(commands.Cog):
 
     @commands.command()
     async def copy(self, ctx, *, short=None):
+        if not proceed_to_party():
+            return
         """Copy a poll. Parameter: <label>"""
         server = await ask_for_server(self.bot, ctx.message, short)
         if not server:
@@ -328,6 +346,8 @@ class PollControls(commands.Cog):
 
     @commands.command()
     async def export(self, ctx, *, short=None):
+        if not proceed_to_party():
+            return
         """Export a poll. Parameter: <label>"""
         server = await ask_for_server(self.bot, ctx.message, short)
         if not server:
@@ -370,6 +390,8 @@ class PollControls(commands.Cog):
 
     @commands.command()
     async def show(self, ctx, short='open', start=0):
+        if not proceed_to_party():
+            return
         """Show a list of open polls or show a specific poll.
         Parameters: "open" (default), "closed", "prepared" or <label>"""
 
@@ -419,6 +441,8 @@ class PollControls(commands.Cog):
 
     @commands.command()
     async def draw(self, ctx, short=None, opt=None):
+        if not proceed_to_party():
+            return
         server = await ask_for_server(self.bot, ctx.message, short)
         if not server:
             return
@@ -480,6 +504,8 @@ class PollControls(commands.Cog):
 
     @commands.command()
     async def cmd(self, ctx, *, cmd=None):
+        if not proceed_to_party():
+            return
         """The old, command style way paired with the wizard."""
         # await self.say_embed(ctx, say_text='This command is temporarily disabled.')
 
@@ -572,6 +598,8 @@ class PollControls(commands.Cog):
 
     @commands.command()
     async def quick(self, ctx, *, cmd=None):
+        if not proceed_to_party():
+            return
         """Create a quick poll with just a question and some options. Parameters: <Question> (optional)"""
         server = await ask_for_server(self.bot, ctx.message)
         if not server:
@@ -594,6 +622,8 @@ class PollControls(commands.Cog):
 
     @commands.command()
     async def prepare(self, ctx, *, cmd=None):
+        if not proceed_to_party():
+            return
         """Prepare a poll to use later. Parameters: <Question> (optional)"""
         server = await ask_for_server(self.bot, ctx.message)
         if not server:
@@ -618,6 +648,8 @@ class PollControls(commands.Cog):
 
     @commands.command()
     async def advanced(self, ctx, *, cmd=None):
+        if not proceed_to_party():
+            return
         """Poll with more options. Parameters: <Question> (optional)"""
         server = await ask_for_server(self.bot, ctx.message)
         if not server:
@@ -641,6 +673,8 @@ class PollControls(commands.Cog):
 
     @commands.command()
     async def new(self, ctx, *, cmd=None):
+        if not proceed_to_party():
+            return
         """Start the poll wizard to create a new poll step by step. Parameters: <Question> (optional)"""
         server = await ask_for_server(self.bot, ctx.message)
         if not server:
@@ -703,6 +737,8 @@ class PollControls(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, data):
+        if not proceed_to_party():
+            return
         # get emoji symbol
         emoji = data.emoji
         if not emoji:
@@ -768,7 +804,10 @@ class PollControls(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, data):
-        # dont look at bot's own reactions
+        if not proceed_to_party():
+            return
+
+        # don't look at bot's own reactions
         user_id = data.user_id
         if user_id == self.bot.user.id:
             return
@@ -825,10 +864,11 @@ class PollControls(commands.Cog):
             return
 
         p = await Poll.load_from_db(self.bot, server.id, label)
+
         if not isinstance(p, Poll):
             return
-        # member = server.get_member(user_id)
         user = member = data.member
+
         # export
         if emoji.name == '📎':
             self.ignore_next_removed_reaction[str(message.id) + str(emoji)] = user_id
@@ -974,13 +1014,28 @@ class PollControls(commands.Cog):
             return
         else:
             # Assume: User wants to vote with reaction
+            tri = await get_token_rule_info(user_id, data.guild_id)
+            print(f"Token rule info result", tri)
+            if "success" in tri:
+                print("Success")
+                print(f"Role(s) added", tri["success"]["added"])
+                print(f"Role(s) removed", tri["success"]["removed"])
+            elif "error" in tri:
+                await message.remove_reaction(emoji, data.member)
+                await data.member.send(tri["error"])
+                return
+
+            print(f"Original roles: {data.member.roles}")
+            # This refreshes the user/member with their roles that were updated after /get-token-rule-info call
+            user = member = await data.member.guild.fetch_member(user_id)
+            print(f"New roles: {member.roles}")
+
             # no rights, terminate function
             if not p.has_required_role(member):
                 await message.remove_reaction(emoji, user)
                 await member.send(f'You are not allowed to vote in this poll. Only users with '
                                   f'at least one of these roles can vote:\n{", ".join(p.roles)}')
                 return
-
             # check if we need to remove reactions (this will trigger on_reaction_remove)
             if not isinstance(channel, discord.DMChannel) and (p.anonymous or p.hide_count):
                 # immediately remove reaction and to be safe, remove all reactions
@@ -1000,6 +1055,23 @@ class PollControls(commands.Cog):
             # update database with vote
             await p.vote(member, emoji.name, message)
 
+
+async def get_token_rule_info(user_id, guild_id):
+    try:
+        data = requests.post(os.environ.get('PM_STARRY_BACKEND') + "/token-rule-info",
+                         data={'discordUserId': user_id, 'guildId': guild_id})
+        data.raise_for_status()
+    except requests.exceptions.HTTPError as errh:
+        print("Http Error:", errh)
+    except requests.exceptions.ConnectionError as errc:
+        print("Error Connecting:", errc)
+    except requests.exceptions.Timeout as errt:
+        print("Timeout Error:", errt)
+    except requests.exceptions.RequestException as err:
+        print("Other error", err)
+
+    content = data.json()
+    return content
 
 def setup(bot):
     global logger

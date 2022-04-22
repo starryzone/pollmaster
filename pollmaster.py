@@ -13,6 +13,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from essentials.multi_server import get_pre
 from essentials.settings import SETTINGS
+from utils.misc import proceed_to_party
 
 bot_config = {
     'command_prefix': get_pre,
@@ -56,6 +57,8 @@ for ext in extensions:
 
 @bot.event
 async def on_message(message):
+    if not proceed_to_party():
+        return
     # allow case insensitive prefix
     prefix = await get_pre(bot, message)
     if type(prefix) == tuple:
@@ -74,6 +77,8 @@ async def on_message(message):
 
 @bot.event
 async def on_ready():
+    if not proceed_to_party():
+        return
     bot.owner = await bot.fetch_user(SETTINGS.owner_id)
 
     mongo = AsyncIOMotorClient(SETTINGS.mongo_db)
@@ -109,7 +114,8 @@ async def on_ready():
 
 @bot.event
 async def on_command_error(ctx, e):
-
+    if not proceed_to_party():
+        return
     if hasattr(ctx.cog, 'qualified_name') and ctx.cog.qualified_name == "Admin":
         # Admin cog handles the errors locally
         return
@@ -153,6 +159,8 @@ async def on_command_error(ctx, e):
 
 @bot.event
 async def on_guild_join(server):
+    if not proceed_to_party():
+        return
     result = await bot.db.config.find_one({'_id': str(server.id)})
     if result is None:
         await bot.db.config.update_one(

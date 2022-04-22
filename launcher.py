@@ -11,6 +11,7 @@ import requests
 from bot import ClusterBot
 from essentials.multi_server import get_pre
 from essentials.settings import SETTINGS
+from utils.misc import proceed_to_party
 
 TOKEN = SETTINGS.bot_token
 
@@ -45,6 +46,7 @@ class Launcher:
         self.init = time.perf_counter()
 
     def get_shard_count(self):
+        print(f"Settings.mode is {SETTINGS.mode}")
         if SETTINGS.mode == "development":
             return 1
         data = requests.get('https://discordapp.com/api/v7/gateway/bot', headers={
@@ -81,8 +83,11 @@ class Launcher:
 
     async def startup(self):
         shards = list(range(self.get_shard_count()))
-        size = [shards[x:x + 4] for x in range(0, len(shards), 4)]
+        print(f"Shards: {shards}")
+        # size = [shards[x:x + 4] for x in range(0, len(shards), 4)]
+        size = [shards[x:x + 1] for x in range(0, len(shards), 1)]
         log.info(f"Preparing {len(size)} clusters")
+        print(f"Preparing {len(size)} clusters")
         for shard_ids in size:
             self.cluster_queue.append(Cluster(self, next(NAMES), shard_ids, len(shards)))
 
@@ -126,7 +131,7 @@ class Launcher:
         if self.cluster_queue:
             cluster = self.cluster_queue.pop(0)
             log.info(f"Starting Cluster#{cluster.name}")
-            await cluster.start()
+            await cluster.start(force=True)
             log.info("Done!")
             self.clusters.append(cluster)
             await self.start_cluster()
@@ -193,6 +198,10 @@ class Cluster:
             pass
 
 
+
+
 if __name__ == "__main__":
+    print("in main")
     loop = asyncio.get_event_loop()
-    Launcher(loop).start()
+    launcher = Launcher(loop)
+    launcher.start()

@@ -4,9 +4,6 @@
 # PY VENV
 venv/
 
-# Tokens and Passwwords
-essentials/secrets\.py
-
 *.log
 
 # export
@@ -17,3 +14,5 @@ export/*.txt
 
 #backup
 backup/
+
+node_modules/

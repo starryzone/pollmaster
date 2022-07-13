@@ -54,6 +54,18 @@ class Vote:
         return result
 
     @staticmethod
+    async def load_votes_for_rcv_poll(bot, poll_id: ObjectId,):
+        pipeline = [
+            {"$match": {'poll_id': poll_id}},
+            {"$group": {"_id": "$user_id", "choice": {"$push": {"choice": "$choice", "weight": "$weight"}}}}
+        ]
+        query = bot.db.votes.aggregate(pipeline)
+        result = {}
+        async for q in query:
+            result[q['_id']] = q['choice']
+        return result
+
+    @staticmethod
     async def load_votes_for_poll_and_user(bot, poll_id: ObjectId, user_id):
         user_id = str(user_id)
         query = bot.db.votes.find({'poll_id': poll_id, 'user_id': user_id})

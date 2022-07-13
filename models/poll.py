@@ -88,6 +88,8 @@ class Poll:
             self.votes = {}
 
             self.wizard_messages = []
+            
+            self.rcv = False
 
     @staticmethod
     def get_preset_options(number):
@@ -436,6 +438,56 @@ class Poll:
                 await self.add_error(message, '**Enter a positive number**')
             except OutOfRange:
                 await self.add_error(message, '**You can\'t have more choices than options.**')
+
+    async def set_ranked_choice_voting(self, ctx, force=None):
+        """Determine if poll is ranked choice voting."""
+        async def get_valid(in_reply):
+            if self.multiple_choice == 1:
+                return False
+            if not in_reply:
+                raise InvalidInput
+            is_true = ['yes', '1']
+            is_false = ['no', '0']
+            in_reply = self.sanitize_string(in_reply)
+            if not in_reply:
+                raise InvalidInput
+            elif in_reply.lower() in is_true:
+                return True
+            elif in_reply.lower() in is_false:
+                return False
+            else:
+                raise InvalidInput
+
+        try:
+            self.rcv = await get_valid(force)
+            return
+        except InputError:
+            pass
+
+        text = ("Next you need to decide: **Do you want your poll to be ranked-choice voting?**\n"
+                "\n"
+                "`0 - No`\n"
+                "`1  - Yes`\n"
+                "\n"
+                "🔶 An ranked-choice voting has the following effects:\n"
+                "🔶 After chosing multiple choices, only first-preference votes are counted\n"
+                "🔶 If none of the choices is voted by a majority, the choice with the fewest first-preference votes is eliminated.\n"
+                "🔶 All first-preference votes for the failed choice are eliminated, lifting the second-preference choices indicated by those users.\n"
+                "🔶 The process repeats until choice wins a majority of votes")
+        message = await self.wizard_says(ctx, text)
+
+        while True:
+            try:
+                if force:
+                    reply = force
+                    force = None
+                else:
+                    reply = await self.get_user_reply(ctx)
+                self.rcv = await get_valid(reply)
+                await self.add_vaild(message, f'{"Yes" if self.rcv else "No"}')
+                break
+            except InvalidInput:
+                await self.add_error(message, '**You can only answer with `yes` | `1` or `no` | `0`!**')
 
     async def set_options_reaction(self, ctx, force=None):
         """Set the answers / options of the Poll."""
@@ -929,6 +981,7 @@ class Poll:
             'multiple_choice': self.multiple_choice,
             'options_reaction': self.options_reaction,
             'reaction_default': self.options_reaction_default,
+            'rcv': self.rcv,
             #'options_traditional': self.options_traditional,
             'survey_flags': self.survey_flags,
             'roles': self.roles,
@@ -948,7 +1001,10 @@ class Poll:
         """Create report and return string"""
         # load all votes from database
         await self.load_full_votes()
-        await self.load_vote_counts()
+        if self.rcv:
+            await self.load_vote_counts_rcv()
+        else:
+            await self.load_vote_counts()
         await self.load_unique_participants()
         # build string for weights
         weight_str = 'No weights'
@@ -1131,6 +1187,7 @@ class Poll:
         self.name = d['name']
         self.short = d['short']
         self.anonymous = d['anonymous']
+        self.rcv = d['rcv']
 
         # backwards compatibility
         if 'hide_count' in d.keys():
@@ -1220,6 +1277,29 @@ class Poll:
                 self.vote_counts_weighted[v.choice] = self.vote_counts_weighted.get(v.choice, 0) + v.weight
         else:
             self.vote_counts_weighted = self.vote_counts
+    
+    async def load_vote_counts_rcv(self):
+        if not self.vote_counts:
+            self.vote_counts = await Vote.load_vote_counts_for_poll(self.bot, self.id)
+        user_counts = await Vote.load_votes_for_rcv_poll(self.bot, self.id)
+        while user_counts:
+            weights_count = 0
+            for votes in user_counts.values():
+                if len(votes) > 0:
+                    weights_count += votes[0]['weight']
+            vote_counts = {}
+            for votes in user_counts.values():
+                if len(votes) > 0:
+                    vote = votes[0]
+                    vote_counts[vote['choice']] = vote_counts.get(vote['choice'], 0) + vote['weight']
+            if any(count >= weights_count / 2 for count in vote_counts.values()):
+                self.vote_counts_weighted = vote_counts
+                break
+            eliminated = min(vote_counts, key=vote_counts.get)
+            for i in user_counts.keys():
+                for j in list(user_counts[i]):
+                    if j['choice'] == eliminated:
+                        user_counts[i].remove(j)
 
     async def load_full_votes(self):
         if not self.full_votes:
@@ -1281,7 +1361,10 @@ class Poll:
             embed = self.add_field_custom(name='**Deadline**', value=await self.get_poll_status(), embed=embed)
 
         # embed = self.add_field_custom(name='**Author**', value=self.author.name, embed=embed)
-        await self.load_vote_counts()
+        if self.rcv:
+            await self.load_vote_counts_rcv()
+        else:
+            await self.load_vote_counts()
         if self.options_reaction_default:
             if await self.is_open():
                 text = f'**Score** '

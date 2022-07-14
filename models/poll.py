@@ -1297,8 +1297,9 @@ class Poll:
                 break
             eliminated = min(vote_counts, key=vote_counts.get)
             for i in user_counts.keys():
-                if len(user_counts[i]) > 0 and user_counts[i][0]['choice'] == eliminated:
-                    del user_counts[i][0]
+                for j in list(user_counts[i]):
+                    if j['choice'] == eliminated:
+                        user_counts[i].remove(j)
 
     async def load_full_votes(self):
         if not self.full_votes:

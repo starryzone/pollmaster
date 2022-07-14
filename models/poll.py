@@ -1292,14 +1292,13 @@ class Poll:
                 if len(votes) > 0:
                     vote = votes[0]
                     vote_counts[vote['choice']] = vote_counts.get(vote['choice'], 0) + vote['weight']
-            if any(count >= weights_count / 2 for count in vote_counts.values()):
+            if any(count > weights_count / 2 for count in vote_counts.values()):
                 self.vote_counts_weighted = vote_counts
                 break
             eliminated = min(vote_counts, key=vote_counts.get)
             for i in user_counts.keys():
-                for j in list(user_counts[i]):
-                    if j['choice'] == eliminated:
-                        user_counts[i].remove(j)
+                if len(user_counts[i]) > 0 and user_counts[i][0]['choice'] == eliminated:
+                    del user_counts[i][0]
 
     async def load_full_votes(self):
         if not self.full_votes:
